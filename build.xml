@@ -1,0 +1,9 @@
+<project name="WebSever" default="compile" >
+	<target name="compile" depends="init">
+		<javac srcdir="." includeantruntime="false">
+	</target>
+	
+	<target name="run" depends="compile">
+		<java classname="WebServer" fork="ture">
+	</target>
+</project>
