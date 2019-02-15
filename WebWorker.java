@@ -49,13 +49,49 @@ public WebWorker(Socket s)
 public void run()
 {
    System.err.println("Handling connection...");
+   //path to the file
    String filePath = "";
+   //type of content being read
+   String contentType = "";
+   
    try {
       InputStream  is = socket.getInputStream();
       OutputStream os = socket.getOutputStream();
+      
+      //read in from GET request
       filePath = readHTTPRequest(is);
-      int fileExists = writeHTTPHeader(os,"text/html",filePath);
-      writeContent(os ,filePath, fileExists);
+      //check for .gif
+      if ( filePath.toLowerCase().contains(".gif") ) {
+          contentType = "image/gif";
+          System.err.println("Type of Content Entered: " + contentType );
+       } // end if. 
+       //check for .jpeg
+       else if ( filePath.toLowerCase().contains(".jpeg") ) {
+    	   contentType = "image/jpeg";
+          System.err.println("Type of Content Entered: " + contentType );
+       } // end else-if
+       
+       //check for .png
+       else if ( filePath.toLowerCase().contains(".png") ) {
+    	   contentType = "image/png";
+          System.err.println("Type of Content Entered: " + contentType );
+       } // end else-if
+       
+       /*EXTRA CREDIT*/
+       //Check for the .ico file.
+       else if ( filePath.toLowerCase().contains("ico") ) {
+    	   contentType = "image/x-icon";
+          System.err.println("Type of Content Entered: " + contentType );
+       } // end else if.
+       
+      //default type is a text/html
+       else {
+    	   contentType = "text/html";
+          System.err.println("Type of Content Entered: " + contentType );
+       } // end else.
+      
+      int fileExists = writeHTTPHeader(os,contentType,filePath);
+      writeContent(os, contentType ,filePath, fileExists);
       os.flush();
       socket.close();
    } catch (Exception e) {
@@ -67,6 +103,7 @@ public void run()
 
 /**
 * Read the HTTP request header.
+* Make the output of the function to a string that can be read later
 **/
 private String readHTTPRequest(InputStream is)
 {
@@ -117,7 +154,7 @@ private int writeHTTPHeader(OutputStream os, String contentType, String filepath
    df.setTimeZone(TimeZone.getTimeZone("GMT"));
    
    
-   //check if the file exist
+   //check if the file exist using a boolean flag variable
    File tmpDir = new File(filepath);
    boolean exists = tmpDir.exists();
 
@@ -159,22 +196,24 @@ private int writeHTTPHeader(OutputStream os, String contentType, String filepath
 * be done after the HTTP header has been written out.
 * @param os is the OutputStream object to write to
 **/
-private void writeContent(OutputStream os, String pathToFile, int fileExists ) throws Exception {
+private void writeContent(OutputStream os, String contentType, String pathToFile, int fileExists ) throws Exception {
 
 	   // Declare a variable that will allow us to read in the content from the HTML file.
 	   String content = "";
 	   
 	   // Update the path name to include the current working directory.
-	   String pathCopy = "." + pathToFile.substring( 0, pathToFile.length( ) );
+	   String pathCopy = System.getProperty("user.dir") + pathToFile.substring( 0, pathToFile.length( ) );
 	   
 	   // Create and update a new Date object.
 	   Date d = new Date();
 	   DateFormat df = DateFormat.getDateTimeInstance();
 	   df.setTimeZone(TimeZone.getTimeZone("MST7MDT"));
 	   
+	   //for system checking
 	   System.err.println("pathToFile = " + pathToFile);
 	   System.err.println("fileExists = " + fileExists);
 	   
+	   if(contentType.equals("text/html")) {
 	   //output working web server when fileExists flag is 1
 	   while(fileExists == 1) {
 		   os.write("<html><head></head><body>\n".getBytes());
@@ -232,8 +271,44 @@ private void writeContent(OutputStream os, String pathToFile, int fileExists ) t
 	   }// end catch. 
 	   break;
 	   }
+	   }//end if
 	
-	
+	   else if(contentType.contains("image")) {
+		// Try reading from the file (byte mode) and throw an exception if the file isn't found.
+		      try {
+		   
+		         File inputtedFile = new File ( pathCopy );  
+		         FileInputStream imageInput = new FileInputStream ( inputtedFile );
+		         
+		         // Read in the bytes from the file and store them in an array. 
+		         byte imageBytes [ ] = new byte [ (int) inputtedFile.length() ];
+		         imageInput.read( imageBytes );
+		         
+		         // Output the bytes into the os stream. 
+		         DataOutputStream imageOutput = new DataOutputStream( os );
+		         imageOutput.write( imageBytes );
+		      
+		      } // end try.
+		   
+		      catch ( FileNotFoundException e) {             
+		         
+		         // Print an error message if the file did not exists and/or if the path given is incorrect. 
+		         System.err.println("File not found: " + pathToFile + " Please check path or if file exists." );
+		      
+		         // Send the corresponding bytes so that the user knows that the 404 error occured. 
+		         // NOTE: Extra messages were not needed for this assignment but adding extra context is 
+		         // important in the real world. 
+		       
+		         os.write ( "<html>\n".getBytes( ) );
+		         os.write ( "<head>\n<title>ERROR 404: IMAGE</title></head>\n".getBytes( ) );
+		         os.write ( "<body>\n".getBytes( ) );
+		         os.write ( "<h1>404 IMAGE Not Found</h1>\n".getBytes() ); 
+		         os.write ( "</body>\n".getBytes() );  
+		         os.write ( "</html>\n".getBytes( ) );               
+		             
+		      }// end catch. 
+		   
+	   }//end else
 	} // end writeContent method. 
 
 } // end class
